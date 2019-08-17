@@ -1,0 +1,120 @@
+<head>
+<style>
+
+body {
+  background-color: #eee;
+}
+
+#base {
+  width: 907px;
+  height: 510px;
+
+  position: relative;
+  left: calc(50% / 2);
+}
+
+</style>
+</head>
+<body>
+  <div>File: <input type="file" id="imageSelect" /></div>
+  <div>Hexagon size: <input type="text" id="sizeSelect" value="50"/></div>
+  <div id="base" style="background-image: url(https://resize.hswstatic.com/w_907/gif/snail-shell.jpg)"></div>
+  <script>
+
+
+function tessellate(base, origin, size) {
+  var base = document.getElementById("base");
+  for (var i = 1; i < 6; i++) {
+    var overlay = document.createElement("div");
+    overlay.style.backgroundImage = base.style.backgroundImage;
+    overlay.style.width = base.offsetWidth;
+    overlay.style.height = base.offsetHeight;
+    overlay.style.position = "absolute";
+    overlay.style.zIndex = "999";
+    overlay.style.transformOrigin = origin[0] + "px " + origin[1] + "px";
+    overlay.style.transform = "rotate(calc(60deg * " + i + "))";
+
+    triangle = [
+      origin[0] + "px " + origin[1] + "px",
+      (origin[0] + size) + "px " + origin[1] + "px",
+      (origin[0] + (size / 2)) + "px " + (origin[1] - ((size / 2) * Math.sqrt(3))) + "px"
+    ];
+
+    overlay.style.clipPath = "polygon(" + triangle.join(",") + ")";
+    overlay.classList.add("overlay");
+    base.appendChild(overlay);
+  }
+}
+
+function clear(className) {
+  var o = document.getElementsByClassName(className);
+  for (var i = 0; i < o.length; i++) {
+    base.removeChild(o[i]);
+  }
+}
+
+var base = document.getElementById("base"),
+  imageSelect = document.getElementById("imageSelect"),
+  sizeSelect = document.getElementById("sizeSelect");
+
+var size = 50;
+
+var mousemove = function(e) {
+  clear("overlay");
+  var x = e.screenX - base.offsetLeft,
+    y = e.screenY - base.offsetTop;
+
+  y -= 100;
+  y += window.scrollY;
+
+  tessellate(base, [x, y], size);
+};
+
+var click = function() {
+  base.removeEventListener("click", click);
+  base.addEventListener("click", function() {
+    base.removeEventListener("mousemove", mousemove);
+    base.addEventListener("click", click);
+    var o = document.getElementsByClassName("overlay");
+    for (var i = 0; i < o.length; i++) {
+      var el = o[i];
+      el.classList.remove("overlay");
+      el.classList.add("overlay-fixed");
+    }
+  });
+  base.addEventListener("mousemove", mousemove);
+};
+
+base.addEventListener("click", click);
+
+
+imageSelect.addEventListener("change", function() {
+  var reader = new FileReader(),
+    img = new Image(),
+    file = this.files[0];
+
+  reader.onload = function() {
+    img.src = reader.result;
+  }
+
+  img.onload = function() {
+    base.style.backgroundImage = "url(" + URL.createObjectURL(file) + ")";
+    base.style.width = img.width;
+    base.style.height = img.height;
+    clear("overlay");
+    clear("overlay-fixed");
+  }
+
+  reader.readAsDataURL(this.files[0]);
+});
+
+sizeSelect.addEventListener("change", function () {
+  var n = parseInt(sizeSelect.value);
+  if (n != NaN) {
+    size = n;
+  }
+});
+
+
+  </script>
+</body>
