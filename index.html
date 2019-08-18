@@ -21,8 +21,49 @@ body {
   <div id="base" style="background-image: url(https://resize.hswstatic.com/w_907/gif/snail-shell.jpg)"></div>
   <script>
 
+function triangle(origin, size, offset) {
+  var n = (offset < 0 ? -offset : offset) % 6;
+  if (n % 6 == 0) {
+    return [
+      origin[0] + "px " + origin[1] + "px",
+      (origin[0] + size) + "px " + origin[1] + "px",
+      (origin[0] + (size / 2)) + "px " + (origin[1] - ((size / 2) * Math.sqrt(3))) + "px"
+    ];
+  } else   if (n % 6 == 1) {
+    return [
+      origin[0] + "px " + origin[1] + "px",
+      (origin[0] + (size / 2)) + "px " + (origin[1] - ((size / 2) * Math.sqrt(3))) + "px",
+      (origin[0] - (size / 2)) + "px " + (origin[1] - ((size / 2) * Math.sqrt(3))) + "px"
+    ];
+  } else   if (n % 6 == 2) {
+    return [
+      origin[0] + "px " + origin[1] + "px",
+      (origin[0] - (size / 2)) + "px " + (origin[1] - ((size / 2) * Math.sqrt(3))) + "px",
+      (origin[0] - size) + "px " + origin[1] + "px"
+    ];
+  } else   if (n % 6 == 3) {
+    return [
+      origin[0] + "px " + origin[1] + "px",
+      (origin[0] - size) + "px " + origin[1] + "px",
+      (origin[0] - (size / 2)) + "px " + (origin[1] + ((size / 2) * Math.sqrt(3))) + "px"
+    ];
+  } else   if (n % 6 == 4) {
+    return [
+      origin[0] + "px " + origin[1] + "px",
+      (origin[0] - (size / 2)) + "px " + (origin[1] + ((size / 2) * Math.sqrt(3))) + "px",
+      (origin[0] + (size / 2)) + "px " + (origin[1] + ((size / 2) * Math.sqrt(3))) + "px"
+    ];
+  } else   if (n % 6 == 5) {
+    return [
+      origin[0] + "px " + origin[1] + "px",
+      (origin[0] + (size / 2)) + "px " + (origin[1] + ((size / 2) * Math.sqrt(3))) + "px",
+      (origin[0] + size) + "px " + origin[1] + "px"
+    ];
+  }
+}
 
-function tessellate(base, origin, size) {
+function tessellate(base, origin, size, offset) {
+  console.log("tessellating: " + origin[0] + ", " + origin[1] + "; " + size + "; " + offset);
   var base = document.getElementById("base");
   for (var i = 1; i < 6; i++) {
     var overlay = document.createElement("div");
@@ -33,14 +74,7 @@ function tessellate(base, origin, size) {
     overlay.style.zIndex = "999";
     overlay.style.transformOrigin = origin[0] + "px " + origin[1] + "px";
     overlay.style.transform = "rotate(calc(60deg * " + i + "))";
-
-    triangle = [
-      origin[0] + "px " + origin[1] + "px",
-      (origin[0] + size) + "px " + origin[1] + "px",
-      (origin[0] + (size / 2)) + "px " + (origin[1] - ((size / 2) * Math.sqrt(3))) + "px"
-    ];
-
-    overlay.style.clipPath = "polygon(" + triangle.join(",") + ")";
+    overlay.style.clipPath = "polygon(" + triangle(origin, size, offset).join(",") + ")";
     overlay.classList.add("overlay");
     base.appendChild(overlay);
   }
@@ -48,7 +82,9 @@ function tessellate(base, origin, size) {
 
 function clear(className) {
   var o = document.getElementsByClassName(className);
+  console.log("Clearing " + o.length + " overlays");
   for (var i = 0; i < o.length; i++) {
+    o[i].style.display = "none";
     base.removeChild(o[i]);
   }
 }
@@ -57,20 +93,31 @@ var base = document.getElementById("base"),
   imageSelect = document.getElementById("imageSelect"),
   sizeSelect = document.getElementById("sizeSelect");
 
-var size = 50;
+var size = 50,
+  offset = 0,
+  lastX = 0,
+  lastY = 0;
 
 var mousemove = function(e) {
   clear("overlay");
-  var x = e.screenX - base.offsetLeft,
+  var x = lastX,
+    y = lastY;
+
+  if (e != -1) {
+    x = e.screenX - base.offsetLeft,
     y = e.screenY - base.offsetTop;
+    y -= 100;
+    y += window.scrollY;
 
-  y -= 100;
-  y += window.scrollY;
+    lastX = x;
+    lastY = y;
+  }
 
-  tessellate(base, [x, y], size);
+  tessellate(base, [x, y], size, offset);
 };
 
 var click = function() {
+  offset = 0;
   base.removeEventListener("click", click);
   base.addEventListener("click", function() {
     base.removeEventListener("mousemove", mousemove);
@@ -108,10 +155,20 @@ imageSelect.addEventListener("change", function() {
   reader.readAsDataURL(this.files[0]);
 });
 
-sizeSelect.addEventListener("change", function () {
+sizeSelect.addEventListener("change", function() {
   var n = parseInt(sizeSelect.value);
   if (n != NaN) {
     size = n;
+  }
+});
+
+document.addEventListener("keydown", function(e) {
+  if (e.key == "ArrowLeft") {
+    offset += 1;
+    mousemove(-1);
+  } else if (e.key == "ArrowRight") {
+    offset -= 1;
+    mousemove(-1);
   }
 });
 
